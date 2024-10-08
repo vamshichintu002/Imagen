@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, Home, Image as ImageIcon, Menu, Zap, UserPlus, Download, Github, Linkedin, Instagram } from 'lucide-react'
+import { UserPlus, Download, Github, Linkedin, Instagram } from 'lucide-react'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import LoginPage from './login' // Import the LoginPage component
 import { storage, auth } from '../lib/firebase'
 import { ref, uploadString, getDownloadURL, listAll, getMetadata } from 'firebase/storage'
-import { onAuthStateChanged, User } from 'firebase/auth' // Add this import
+import { onAuthStateChanged, User, signOut } from 'firebase/auth' // Add this import
 
 interface ImageWithDownloadProps {
   src: string
@@ -66,6 +66,15 @@ function ImageWithDownload({ src, alt }: ImageWithDownloadProps) {
   )
 }
 
+// Add this new component
+const PlaceholderImage = () => (
+  <div className="w-full h-full bg-gray-700 flex items-center justify-center text-gray-400">
+    <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  </div>
+)
+
 export function IdeogramClone() {
   const [prompt, setPrompt] = useState('')
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
@@ -75,7 +84,6 @@ export function IdeogramClone() {
   const [isSignup, setIsSignup] = useState(false)
   const [user, setUser] = useState<User | null>(null) // Update this line
   const [exploreImages, setExploreImages] = useState<string[]>([])
-  const [isExploring, setIsExploring] = useState(false)
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
 
   useEffect(() => {
@@ -180,12 +188,22 @@ export function IdeogramClone() {
 
       const imageUrls = sortedImages.map(image => image.url)
       setExploreImages(imageUrls)
-      setIsExploring(true)
     } catch (err) {
       console.error('Error fetching images:', err)
       setError('Failed to fetch images. Please try again.')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+      alert('You have successfully logged out') // Add this line
+      console.log('User logged out successfully')
+    } catch (error) {
+      console.error('Error logging out:', error)
+      alert('Failed to log out. Please try again.') // Add this line for error handling
     }
   }
 
@@ -217,19 +235,31 @@ export function IdeogramClone() {
               <span className="sr-only">Instagram</span>
             </Button>
           </a>
-          {/* Keep the Login/Signup button */}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="ml-2 bg-white text-black hover:bg-gray-200"
-            onClick={() => {
-              setShowLoginSignup(true)
-              setIsSignup(false)
-            }}
-          >
-            <UserPlus className="h-4 w-4 mr-2 text-black" />
-            Login / Signup
-          </Button>
+          {user ? (
+            // Show Logout button when user is signed in
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-2 bg-white text-black hover:bg-gray-200"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
+          ) : (
+            // Show Login/Signup button when user is not signed in
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-2 bg-white text-black hover:bg-gray-200"
+              onClick={() => {
+                setShowLoginSignup(true)
+                setIsSignup(false)
+              }}
+            >
+              <UserPlus className="h-4 w-4 mr-2 text-black" />
+              Login / Signup
+            </Button>
+          )}
         </div>
       </header>
       
@@ -309,11 +339,7 @@ export function IdeogramClone() {
             // Show placeholder if no images are available
             [...Array(6)].map((_, i) => (
               <div key={i} className="aspect-square bg-gray-800 rounded-lg overflow-hidden">
-                <img
-                  src={`https://via.placeholder.com/300`}
-                  alt="Placeholder image"
-                  className="w-full h-full object-cover"
-                />
+                <PlaceholderImage />
               </div>
             ))
           )}
