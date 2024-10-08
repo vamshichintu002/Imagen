@@ -8,7 +8,6 @@ import LoginPage from './login' // Import the LoginPage component
 import { storage, auth } from '../lib/firebase'
 import { ref, uploadString, getDownloadURL, listAll, getMetadata } from 'firebase/storage'
 import { onAuthStateChanged, User, signOut } from 'firebase/auth' // Add this import
-import Image from 'next/image'
 
 interface ImageWithDownloadProps {
   src: string
@@ -46,11 +45,10 @@ function ImageWithDownload({ src, alt }: ImageWithDownloadProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Image
+      <img
         src={src}
         alt={alt}
-        layout="fill"
-        objectFit="cover"
+        className="w-full h-full object-cover"
       />
       {isHovered && (
         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
