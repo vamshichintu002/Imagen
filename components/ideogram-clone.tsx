@@ -46,11 +46,10 @@ function ImageWithDownload({ src, alt }: ImageWithDownloadProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Image
+      <img
         src={src}
         alt={alt}
-        layout="fill"
-        objectFit="cover"
+        className="w-full h-full object-cover"
       />
       {isHovered && (
         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
