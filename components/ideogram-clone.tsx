@@ -5,11 +5,9 @@ import { Bell, Home, Image as ImageIcon, Menu, Zap, UserPlus } from 'lucide-reac
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import LoginPage from './login' // Import the LoginPage component
-import { storage } from '../lib/firebase'
-import { ref, uploadString, getDownloadURL } from 'firebase/storage'
-import { auth } from '../lib/firebase'
-import { onAuthStateChanged } from 'firebase/auth'
-import { User } from 'firebase/auth' // Add this import
+import { storage, auth } from '../lib/firebase'
+import { ref, uploadString, getDownloadURL, listAll } from 'firebase/storage'
+import { onAuthStateChanged, User } from 'firebase/auth' // Add this import
 
 export function IdeogramClone() {
   const [prompt, setPrompt] = useState('')
@@ -18,11 +16,17 @@ export function IdeogramClone() {
   const [error, setError] = useState<string | null>(null)
   const [showLogin, setShowLogin] = useState(false) // New state to control login visibility
   const [user, setUser] = useState<User | null>(null) // Update this line
+  const [exploreImages, setExploreImages] = useState<string[]>([])
+  const [isExploring, setIsExploring] = useState(false)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser)
     })
+
+    // Fetch images when component mounts
+    fetchExploreImages()
+
     return () => unsubscribe()
   }, [])
 
@@ -84,6 +88,24 @@ export function IdeogramClone() {
     } catch (err) {
       console.error('Error generating image:', err)
       setError(err instanceof Error ? err.message : 'An unknown error occurred')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchExploreImages = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const imagesRef = ref(storage, 'images')
+      const result = await listAll(imagesRef)
+      const urlPromises = result.items.map(imageRef => getDownloadURL(imageRef))
+      const imageUrls = await Promise.all(urlPromises)
+      setExploreImages(imageUrls)
+      setIsExploring(true)
+    } catch (err) {
+      console.error('Error fetching images:', err)
+      setError('Failed to fetch images. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -153,7 +175,11 @@ export function IdeogramClone() {
               <div className="text-red-500 mb-4">{error}</div>
             )}
             <nav className="flex flex-wrap gap-2 mb-8">
-              <Button variant="ghost" className="text-gray-400 hover:text-white text-sm md:text-base">
+              <Button 
+                variant="ghost" 
+                className="text-gray-400 hover:text-white text-sm md:text-base"
+                onClick={fetchExploreImages}
+              >
                 Explore
               </Button>
               <Button variant="ghost" className="text-gray-400 hover:text-white text-sm md:text-base">
@@ -176,7 +202,26 @@ export function IdeogramClone() {
               </Button>
             </nav>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {generatedImage ? (
+              {isLoading ? (
+                // Show loading placeholder while images are being fetched
+                [...Array(6)].map((_, i) => (
+                  <div key={i} className="aspect-square bg-gray-800 rounded-lg overflow-hidden animate-pulse">
+                    <div className="w-full h-full bg-gray-700"></div>
+                  </div>
+                ))
+              ) : exploreImages.length > 0 ? (
+                // Show fetched images
+                exploreImages.map((imageUrl, index) => (
+                  <div key={index} className="aspect-square bg-gray-800 rounded-lg overflow-hidden">
+                    <img
+                      src={imageUrl}
+                      alt={`Explored image ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))
+              ) : generatedImage ? (
+                // Show generated image if available
                 <div className="aspect-square bg-gray-800 rounded-lg overflow-hidden col-span-1 md:col-span-2 lg:col-span-3 max-w-2xl mx-auto">
                   <img
                     src={generatedImage}
@@ -185,17 +230,16 @@ export function IdeogramClone() {
                   />
                 </div>
               ) : (
-                <>
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="aspect-square bg-gray-800 rounded-lg overflow-hidden">
-                      <img
-                        src={`/placeholder.svg?height=300&width=300`}
-                        alt="Placeholder image"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </>
+                // Show placeholder if no images are available
+                [...Array(6)].map((_, i) => (
+                  <div key={i} className="aspect-square bg-gray-800 rounded-lg overflow-hidden">
+                    <img
+                      src={`/placeholder.svg?height=300&width=300`}
+                      alt="Placeholder image"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))
               )}
             </div>
           </main>
