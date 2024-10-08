@@ -46,10 +46,11 @@ function ImageWithDownload({ src, alt }: ImageWithDownloadProps) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <img
+      <Image
         src={src}
         alt={alt}
-        className="w-full h-full object-cover"
+        layout="fill"
+        objectFit="cover"
       />
       {isHovered && (
         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
@@ -113,7 +114,7 @@ export function IdeogramClone() {
       const response = await fetch("https://api-inference.huggingface.co/models/XLabs-AI/flux-RealismLora", {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.HUGGINGFACE_API}`, 
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_HUGGINGFACE_API}`, 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ inputs: prompt }),
